@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0">
+<title>Picker</title>
+<style>
+body {
+    background:#010a21;
+    color:#ffffff;
+    font-family:verdana, sans-serif;
+    font-size:10pt;
+    margin:0;
+    padding:10px;
+}
+
+a:link, a:visited {
+    color:#008;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a:active, a:hover {
+    color:#ACF;
+}
+
+.info {
+    font-weight:bold;
+}
+
+button {
+    font-family:inherit;
+    cursor:pointer;
+    border:0;
+    border-radius:3px;
+    padding:0.3em 0.5em;
+    background:#CCC;
+    color:#000;
+}
+
+button:hover {
+    background:#DDD;
+}
+
+button.disabled {
+    background:#DDD;
+    color:#888;
+    cursor:not-allowed;
+}
+
+button.disabled:hover {
+    background:#DDD;
+}
+
+#container {
+    position:relative;
+    margin-left:-10px;
+    margin-right:-10px;
+    padding:10px;
+    overflow:hidden;
+}
+
+@media (min-width:1024px) {
+    /* Put the found favorites beside the picking div when the window is sufficiently large */
+    #picking {
+        float:left;
+        width:636px;
+    }
+
+    #secondary {
+        margin-left:646px;
+    }
+}
+
+@media (min-width:1300px) {
+    /* Once we get to the point where 636px is less than half of the width of the screen, make the picking div just take up half */
+    #picking {
+        width:50%;
+    }
+
+    #secondary {
+        margin-left:51%;
+    }
+}
+
+#pick {
+    background:rgb(255, 122, 85);
+    color:#FFF;
+    font-size:larger;
+    font-weight:bold;
+    width:6em;
+    border-radius:5px;
+    margin-right:10px;
+}
+
+#pick.disabled {
+    background:#ACF;
+}
+
+#pick:hover {
+    background:#ACF;
+}
+
+.item-list {
+    padding:0;
+    list-style-type:none;
+    line-height:100px;
+}
+
+.item-list li {
+    margin:0;
+    display:inline-block;
+    height:100px;
+    width:100px;
+    line-height:100px;
+    border:3px solid transparent;
+    text-align:center;
+    position:relative;
+    vertical-align:top;
+    overflow:hidden;
+    border-radius:100%;
+    background:#1f1f1f;
+    color:#000;
+}
+
+.item-list li img {
+    vertical-align:middle;
+    max-height:100%;
+    max-width:100%;
+}
+
+.item-list li span {
+    display:inline-block;
+    vertical-align:middle;
+    line-height:1.2;
+}
+
+@media (max-width:636px) {
+    .item-list {
+        line-height:75px;
+    }
+
+    .item-list li {
+        line-height:75px;
+        height:75px;
+        width:75px;
+    }
+}
+
+@media (max-width:423px) {
+    .item-list {
+        line-height:50px;
+    }
+
+    .item-list li {
+        line-height:50px;
+        height:50px;
+        width:50px;
+    }
+}
+
+#evaluating li {
+    cursor:pointer;
+}
+
+#favorites li {
+    cursor:move;
+}
+
+.item-list li:hover {
+    background:#CDF;
+}
+
+.item-list.sorting li:hover {
+    background:#F7F7F7;
+}
+
+#evaluating li.selected {
+    border:3px solid rgb(255, 122, 85);
+}
+
+#evaluating, #buttons {
+    text-align:center;
+    margin:auto;
+}
+
+#evaluating li.notice {
+    width:auto;
+    height:auto;
+    max-width:260px;
+    margin:auto;
+    background:#F7F7F7;
+    border-radius:10px;
+    padding:30px 30px;
+    color:#000;
+    text-align:center;
+    line-height:1.4;
+    cursor:auto;
+    font-size:10pt;
+}
+
+#buttons {
+    margin-top:30px;
+    position:relative;
+    z-index:3;
+}
+</style>
+</head>
+<body>
+<h1>Favorite Dragon Picker!</h1>
+
+<p>Choose your favorite dragon out of the group shown! If you can't decide, you can choose more than one, but you'll have to pick eventually. After a while, this will determine which dragons you choose above all others, and help you order your top favorite dragons in DragonVale!</p>
+<p>Credit for this site goes to <a href="https://github.com/antialiasis/favorite-picker/tree/master">this project.</a></p>
+<p>DragonVale adaptation made by Squish-E.</p>
+
+<div id="container">
+
+<div id="picking">
+<ul id="evaluating" class="item-list">
+</ul>
+
+<p id="buttons"><button id="pick">Pick</button> <button id="pass">Pass</button> <button id="undo">Undo</button> <button id="redo">Redo</button></p>
+</div>
+<p>Max Batch Size: </p><form><input type="number" id="max-batch-size"></form>
+
+<div id="secondary">
+<h2>Found favorites</h2>
+
+<ol id="favorites" class="item-list">
+</ol>
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script src="picker.js"></script>
+<script src="picker-ui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.7.0/Sortable.min.js"></script>
+<script>
+'use strict';
+
+var items = [
+{id: '1', name: 'Abraxas', image: 'abraxas.webp'},
+{id: '2', name: 'Abyss', image: 'abyss.webp'},
+{id: '3', name: 'Acid', image: 'acid.webp'},
+{id: '4', name: 'Ahoy', image: 'ahoy.webp'},
+{id: '5', name: 'Air', image: 'air.webp'},
+{id: '6', name: 'Air Rift', image: 'air rift.webp'},
+{id: '7', name: 'Aisa', image: 'aisa.webp'},
+{id: '8', name: 'Alayzem', image: 'alayzem.webp'},
+{id: '9', name: 'Alffa', image: 'alffa.webp'},
+{id: '10', name: 'Alpenglow', image: 'alpenglow.webp'},
+{id: '11', name: 'Alure', image: 'alure.webp'},
+{id: '12', name: 'Amalgamate', image: 'amalgamate.webp'},
+{id: '13', name: 'Amaryllis', image: 'amaryllis.webp'},
+{id: '14', name: 'Amber', image: 'amber.webp'},
+{id: '15', name: 'Ambrosia', image: 'ambrosia.webp'},
+{id: '16', name: 'Amethyst', image: 'amethyst.webp'},
+{id: '17', name: 'Ancestor', image: 'ancestor.webp'},
+{id: '18', name: 'Andromedan', image: 'andromedan.webp'},
+{id: '19', name: 'Angler', image: 'angler.webp'},
+{id: '20', name: 'Antarian', image: 'antarian.webp'},
+{id: '21', name: 'Antumbra', image: 'antumbra.webp'},
+{id: '22', name: 'Aperture', image: 'aperture.webp'},
+{id: '23', name: 'Apex', image: 'apex.webp'},
+{id: '24', name: 'Apocalypse', image: 'apocalypse.webp'},
+{id: '25', name: 'Aquacorn', image: 'aquacorn.webp'},
+{id: '26', name: 'Aquamarine', image: 'aquamarine.webp'},
+{id: '27', name: 'Aquarian', image: 'aquarian.webp'},
+{id: '28', name: 'Arbor', image: 'arbor.webp'},
+{id: '29', name: 'Arcane', image: 'arcane.webp'},
+{id: '30', name: 'Arcrider', image: 'arcrider.webp'},
+{id: '31', name: 'Arctic', image: 'arctic.webp'},
+{id: '32', name: 'Arcturian', image: 'arcturian.webp'},
+{id: '33', name: 'Arid', image: 'arid.webp'},
+{id: '34', name: 'Ariesian', image: 'ariesian.webp'},
+{id: '35', name: 'Armament', image: 'armament.webp'},
+{id: '36', name: 'Ash', image: 'ash.webp'},
+{id: '37', name: 'Astraline', image: 'astraline.webp'},
+{id: '38', name: 'Atramento', image: 'atramento.webp'},
+{id: '39', name: 'Aubergine', image: 'aubergine.webp'},
+{id: '40', name: 'Auroch', image: 'auroch.webp'},
+{id: '41', name: 'Aurora', image: 'aurora.webp'},
+{id: '42', name: 'Aurum', image: 'aurum.webp'},
+{id: '43', name: 'Autumn', image: 'autumn.webp'},
+{id: '44', name: 'Avarice', image: 'avarice.webp'},
+{id: '45', name: 'Azurite', image: 'azurite.webp'},
+{id: '46', name: 'Bahamut', image: 'bahamut.webp'},
+{id: '47', name: 'Barbarous', image: 'barbarous.webp'},
+{id: '48', name: 'Barite', image: 'barite.webp'},
+{id: '49', name: 'Barkskin', image: 'barkskin.webp'},
+{id: '50', name: 'Basket', image: 'basket.webp'},
+{id: '51', name: 'Bastion', image: 'bastion.webp'},
+{id: '52', name: 'Bearded', image: 'bearded.webp'},
+{id: '53', name: 'Begonia', image: 'begonia.webp'},
+{id: '54', name: 'Bellflower', image: 'bellflower.webp'},
+{id: '55', name: 'Berry', image: 'berry.webp'},
+{id: '56', name: 'Bicentennial', image: 'bicentennial.webp'},
+{id: '57', name: 'Bilby', image: 'bilby.webp'},
+{id: '58', name: 'Binky', image: 'binky.webp'},
+{id: '59', name: 'Bismuth', image: 'bismuth.webp'},
+{id: '60', name: 'Bizurian', image: 'bizurian.webp'},
+{id: '61', name: 'Blazing', image: 'blazing.webp'},
+{id: '62', name: 'Blazing Gale', image: 'blazing gale.webp'},
+{id: '63', name: 'Blightwing', image: 'blightwing.webp'},
+{id: '64', name: 'Blizzard', image: 'blizzard.webp'},
+{id: '65', name: 'Bloatato', image: 'bloatato.webp'},
+{id: '66', name: 'Bloom', image: 'bloom.webp'},
+{id: '67', name: 'Blossom', image: 'blossom.webp'},
+{id: '68', name: 'Blue Fire', image: 'blue fire.webp'},
+{id: '69', name: 'Blue Moon', image: 'blue moon.webp'},
+{id: '70', name: 'Bog', image: 'bog.webp'},
+{id: '71', name: 'Bogberry', image: 'bogberry.webp'},
+{id: '72', name: 'Bone', image: 'bone.webp'},
+{id: '73', name: 'Bonescale', image: 'bonescale.webp'},
+{id: '74', name: 'Bouldershock', image: 'bouldershock.webp'},
+{id: '75', name: 'Bounteous', image: 'bounteous.webp'},
+{id: '76', name: 'Bouquet', image: 'bouquet.webp'},
+{id: '77', name: 'Bramble', image: 'bramble.webp'},
+{id: '78', name: 'Brass', image: 'brass.webp'},
+{id: '79', name: 'Brilliant', image: 'brilliant.webp'},
+{id: '80', name: 'Brizoni', image: 'brizoni.webp'},
+{id: '81', name: 'Bronze', image: 'bronze.webp'},
+{id: '82', name: 'Bronze Olympus', image: 'bronze olympus.webp'},
+{id: '83', name: 'Brood', image: 'brood.webp'},
+{id: '84', name: 'Brutiful', image: 'brutiful.webp'},
+{id: '85', name: 'Bubble', image: 'bubble.webp'},
+{id: '86', name: 'Bumi', image: 'bumi.webp'},
+{id: '87', name: 'Burglehoo', image: 'burglehoo.webp'},
+{id: '88', name: 'Burrow', image: 'burrow.webp'},
+{id: '89', name: 'Busby', image: 'busby.webp'},
+{id: '90', name: 'Bushwhack', image: 'bushwhack.webp'},
+{id: '91', name: 'Buttercup', image: 'buttercup.webp'},
+{id: '92', name: 'Butterfly', image: 'butterfly.webp'},
+{id: '93', name: 'Cactus', image: 'cactus.webp'},
+{id: '94', name: 'Candescent', image: 'candescent.webp'},
+{id: '95', name: 'Candlecrown', image: 'candlecrown.webp'},
+{id: '96', name: 'Canna', image: 'canna.webp'},
+{id: '97', name: 'Cansian', image: 'cansian.webp'},
+{id: '98', name: 'Canvas', image: 'canvas.webp'},
+{id: '99', name: 'Capricornian', image: 'capricornian.webp'},
+{id: '100', name: 'Carnival', image: 'carnival.webp'},
+{id: '101', name: 'Cave', image: 'cave.webp'},
+{id: '102', name: 'Celerulean', image: 'celerulean.webp'},
+{id: '103', name: 'Celtic', image: 'celtic.webp'},
+{id: '104', name: 'Century', image: 'century.webp'},
+{id: '105', name: 'Cerberus', image: 'cerberus.webp'},
+{id: '106', name: 'Chaiko', image: 'chaiko.webp'},
+{id: '107', name: 'Char', image: 'char.webp'},
+{id: '108', name: 'Charlatan', image: 'charlatan.webp'},
+{id: '109', name: 'Cherrie', image: 'cherrie.webp'},
+{id: '110', name: 'Chikipea', image: 'chikipea.webp'},
+{id: '111', name: 'Chimmit', image: 'chimmit.webp'},
+{id: '112', name: 'Chimneypuff', image: 'chimneypuff.webp'},
+{id: '113', name: 'Chipichipi', image: 'chipichipi.webp'},
+{id: '114', name: 'Chitin', image: 'chitin.webp'},
+{id: '115', name: 'Chomp', image: 'chomp.webp'},
+{id: '116', name: 'Chorister', image: 'chorister.webp'},
+{id: '117', name: 'Chromacorn', image: 'chromacorn.webp'},
+{id: '118', name: 'Chrome', image: 'chrome.webp'},
+{id: '119', name: 'Chrysalis', image: 'chrysalis.webp'},
+{id: '120', name: 'Chuck', image: 'chuck.webp'},
+{id: '121', name: 'Clairvoyant', image: 'clairvoyant.webp'},
+{id: '122', name: 'Classical', image: 'classical.webp'},
+{id: '123', name: 'Clover', image: 'clover.webp'},
+{id: '124', name: 'Coal', image: 'coal.webp'},
+{id: '125', name: 'Cocoahollow', image: 'cocoahollow.webp'},
+{id: '126', name: 'Cold', image: 'cold.webp'},
+{id: '127', name: 'Cold Rift', image: 'cold rift.webp'},
+{id: '128', name: 'Coldcoil', image: 'coldcoil.webp'},
+{id: '129', name: 'Coldforge', image: 'coldforge.webp'},
+{id: '130', name: 'Combustion', image: 'combustion.webp'},
+{id: '131', name: 'Comet', image: 'comet.webp'},
+{id: '132', name: 'Conch', image: 'conch.webp'},
+{id: '133', name: 'Conifer', image: 'conifer.webp'},
+{id: '134', name: 'Construct', image: 'construct.webp'},
+{id: '135', name: 'Copper', image: 'copper.webp'},
+{id: '136', name: 'Coral', image: 'coral.webp'},
+{id: '137', name: 'Corrupticorn', image: 'corrupticorn.webp'},
+{id: '138', name: 'Corsair', image: 'corsair.webp'},
+{id: '139', name: 'Cotton', image: 'cotton.webp'},
+{id: '140', name: 'Country', image: 'country.webp'},
+{id: '141', name: 'Crackle', image: 'crackle.webp'},
+{id: '142', name: 'Crawler', image: 'crawler.webp'},
+{id: '143', name: 'Crypt', image: 'crypt.webp'},
+{id: '144', name: 'Crystal', image: 'crystal.webp'},
+{id: '145', name: 'Cubicle', image: 'cubicle.webp'},
+{id: '146', name: 'Cuddlewing', image: 'cuddlewing.webp'},
+{id: '147', name: 'Cumberpatch', image: 'cumberpatch.webp'},
+{id: '148', name: 'Cumulus', image: 'cumulus.webp'},
+{id: '149', name: 'Cupido', image: 'cupido.webp'},
+{id: '150', name: 'Curlyleaf', image: 'curlyleaf.webp'},
+{id: '151', name: 'Current', image: 'current.webp'},
+{id: '152', name: 'Curse', image: 'curse.webp'},
+{id: '153', name: 'Cyclamen', image: 'cyclamen.webp'},
+{id: '154', name: 'Cyclone', image: 'cyclone.webp'},
+{id: '155', name: 'Cyclops', image: 'cyclops.webp'},
+{id: '156', name: 'Daffadowndilly', image: 'daffadowndilly.webp'},
+{id: '157', name: 'Dancey', image: 'dancey.webp'},
+{id: '158', name: 'Dandelion', image: 'dandelion.webp'},
+{id: '159', name: 'Dapplethorn', image: 'dapplethorn.webp'},
+{id: '160', name: 'Darcowl', image: 'darcowl.webp'},
+{id: '161', name: 'Dargon', image: 'dargon.webp'},
+{id: '162', name: 'Dark', image: 'dark.webp'},
+{id: '163', name: 'Dark Rift', image: 'dark rift.webp'},
+{id: '164', name: 'Darkling', image: 'darkling.webp'},
+{id: '165', name: 'Darkmatter', image: 'darkmatter.webp'},
+{id: '166', name: 'Dartwing', image: 'dartwing.webp'},
+{id: '167', name: 'Dash', image: 'dash.webp'},
+{id: '168', name: 'Davinese', image: 'davinese.webp'},
+{id: '169', name: 'Dawn', image: 'dawn.webp'},
+{id: '170', name: 'Dawnbringer', image: 'dawnbringer.webp'},
+{id: '171', name: 'Daydream', image: 'daydream.webp'},
+{id: '172', name: 'Daylily', image: 'daylily.webp'},
+{id: '173', name: 'Dazzle', image: 'dazzle.webp'},
+{id: '174', name: 'Dazzling', image: 'dazzling.webp'},
+{id: '175', name: 'Decay', image: 'decay.webp'},
+{id: '176', name: 'Delicia', image: 'delicia.webp'},
+{id: '177', name: 'Delight', image: 'delight.webp'},
+{id: '178', name: 'Delirium', image: 'delirium.webp'},
+{id: '179', name: 'Derecho', image: 'derecho.webp'},
+{id: '180', name: 'Diamond', image: 'diamond.webp'},
+{id: '181', name: 'Diggy', image: 'diggy.webp'},
+{id: '182', name: 'Dittoglide', image: 'dittoglide.webp'},
+{id: '183', name: 'Divi', image: 'divi.webp'},
+{id: '184', name: 'Djinni', image: 'djinni.webp'},
+{id: '185', name: 'Dodo', image: 'dodo.webp'},
+{id: '186', name: 'Dortal', image: 'dortal.webp'},
+{id: '187', name: 'Double Leap Year', image: 'double leap year.webp'},
+{id: '188', name: 'Double Rainbow', image: 'double rainbow.webp'},
+{id: '189', name: 'Dracabra', image: 'dracabra.webp'},
+{id: '190', name: 'Dream', image: 'dream.webp'},
+{id: '191', name: 'Drifter', image: 'drifter.webp'},
+{id: '192', name: 'Dungeon', image: 'dungeon.webp'},
+{id: '193', name: 'Dusk', image: 'dusk.webp'},
+{id: '194', name: 'Duskwing', image: 'duskwing.webp'},
+{id: '195', name: 'Earth', image: 'earth.webp'},
+{id: '196', name: 'Earth Rift', image: 'earth rift.webp'},
+{id: '197', name: 'Efreet', image: 'efreet.webp'},
+{id: '198', name: 'Eldritch', image: 'eldritch.webp'},
+{id: '199', name: 'Electrum', image: 'electrum.webp'},
+{id: '200', name: 'Elegant', image: 'elegant.webp'},
+{id: '201', name: 'Elkar', image: 'elkar.webp'},
+{id: '202', name: 'Elysium', image: 'elysium.webp'},
+{id: '203', name: 'Ember', image: 'ember.webp'},
+{id: '204', name: 'Embossed', image: 'embossed.webp'},
+{id: '205', name: 'Emerald', image: 'emerald.webp'},
+{id: '206', name: 'Enfis', image: 'enfis.webp'},
+{id: '207', name: 'Entwined', image: 'entwined.webp'},
+{id: '208', name: 'Epoch', image: 'epoch.webp'},
+{id: '209', name: 'Equinox', image: 'equinox.webp'},
+{id: '210', name: 'Eridanian', image: 'eridanian.webp'},
+{id: '211', name: 'Etch', image: 'etch.webp'},
+{id: '212', name: 'Euryale', image: 'euryale.webp'},
+{id: '213', name: 'Eve', image: 'eve.webp'},
+{id: '214', name: 'Everfrost', image: 'everfrost.webp'},
+{id: '215', name: 'Evergreen', image: 'evergreen.webp'},
+{id: '216', name: 'Eww', image: 'eww.webp'},
+{id: '217', name: 'Exandrew', image: 'exandrew.webp'},
+{id: '218', name: 'Exterrean', image: 'exterrean.webp'},
+{id: '219', name: 'Fae', image: 'fae.webp'},
+{id: '220', name: 'Faire', image: 'faire.webp'},
+{id: '221', name: 'Fates', image: 'fates.webp'},
+{id: '222', name: 'Faux', image: 'faux.webp'},
+{id: '223', name: 'Feast', image: 'feast.webp'},
+{id: '224', name: 'Festive', image: 'festive.webp'},
+{id: '225', name: 'Fever', image: 'fever.webp'},
+{id: '226', name: 'Fire', image: 'fire.webp'},
+{id: '227', name: 'Fire Rift', image: 'fire rift.webp'},
+{id: '228', name: 'Fireflight', image: 'fireflight.webp'},
+{id: '229', name: 'Firefly', image: 'firefly.webp'},
+{id: '230', name: 'Firework', image: 'firework.webp'},
+{id: '231', name: 'Fissure', image: 'fissure.webp'},
+{id: '232', name: 'Flash', image: 'flash.webp'},
+{id: '233', name: 'Flicker', image: 'flicker.webp'},
+{id: '234', name: 'Flickerflame', image: 'flickerflame.webp'},
+{id: '235', name: 'Florea', image: 'florea.webp'},
+{id: '236', name: 'Floristry', image: 'floristry.webp'},
+{id: '237', name: 'Flower', image: 'flower.webp'},
+{id: '238', name: 'Flowerhop', image: 'flowerhop.webp'},
+{id: '239', name: 'Fluffles', image: 'fluffles.webp'},
+{id: '240', name: 'Fluffydoodle', image: 'fluffydoodle.webp'},
+{id: '241', name: 'Fluorescent', image: 'fluorescent.webp'},
+{id: '242', name: 'Flurry', image: 'flurry.webp'},
+{id: '243', name: 'Fog', image: 'fog.webp'},
+{id: '244', name: 'Fomhar', image: 'fomhar.webp'},
+{id: '245', name: 'Forest', image: 'forest.webp'},
+{id: '246', name: 'Forge', image: 'forge.webp'},
+{id: '247', name: 'Fortified', image: 'fortified.webp'},
+{id: '248', name: 'Frond', image: 'frond.webp'},
+{id: '249', name: 'Frons', image: 'frons.webp'},
+{id: '250', name: 'Frostbite', image: 'frostbite.webp'},
+{id: '251', name: 'Frostfire', image: 'frostfire.webp'},
+{id: '252', name: 'Frostflower', image: 'frostflower.webp'},
+{id: '253', name: 'Frostfluff', image: 'frostfluff.webp'},
+{id: '254', name: 'Fuefuego', image: 'fuefuego.webp'},
+{id: '255', name: 'Fulgurite', image: 'fulgurite.webp'},
+{id: '256', name: 'Fungus', image: 'fungus.webp'},
+{id: '257', name: 'Funis', image: 'funis.webp'},
+{id: '258', name: 'Fury', image: 'fury.webp'},
+{id: '259', name: 'Fushi', image: 'fushi.webp'},
+{id: '260', name: 'Gaia', image: 'gaia.webp'},
+{id: '261', name: 'Gamma', image: 'gamma.webp'},
+{id: '262', name: 'Garden', image: 'garden.webp'},
+{id: '263', name: 'Gargoyle', image: 'gargoyle.webp'},
+{id: '264', name: 'Garland', image: 'garland.webp'},
+{id: '265', name: 'Garnet', image: 'garnet.webp'},
+{id: '266', name: 'Gatren', image: 'gatren.webp'},
+{id: '267', name: 'Gawk', image: 'gawk.webp'},
+{id: '268', name: 'Geminian', image: 'geminian.webp'},
+{id: '269', name: 'Geode', image: 'geode.webp'},
+{id: '270', name: 'Ghast', image: 'ghast.webp'},
+{id: '271', name: 'Ghost', image: 'ghost.webp'},
+{id: '272', name: 'Giddle', image: 'giddle.webp'},
+{id: '273', name: 'Gift', image: 'gift.webp'},
+{id: '274', name: 'Gildamane', image: 'gildamane.webp'},
+{id: '275', name: 'Glacier', image: 'glacier.webp'},
+{id: '276', name: 'Glare', image: 'glare.webp'},
+{id: '277', name: 'Glass', image: 'glass.webp'},
+{id: '278', name: 'Glassia', image: 'glassia.webp'},
+{id: '279', name: 'Glasswing', image: 'glasswing.webp'},
+{id: '280', name: 'Glider', image: 'glider.webp'},
+{id: '281', name: 'Glimmerwing', image: 'glimmerwing.webp'},
+{id: '282', name: 'Glitz', image: 'glitz.webp'},
+{id: '283', name: 'Glowwing', image: 'glowwing.webp'},
+{id: '284', name: 'Glyph', image: 'glyph.webp'},
+{id: '285', name: 'Gold', image: 'gold.webp'},
+{id: '286', name: 'Gold Olympus', image: 'gold olympus.webp'},
+{id: '287', name: 'Gourd', image: 'gourd.webp'},
+{id: '288', name: 'Grace', image: 'grace.webp'},
+{id: '289', name: 'Grandeur', image: 'grandeur.webp'},
+{id: '290', name: 'Gravity', image: 'gravity.webp'},
+{id: '291', name: 'Greenge', image: 'greenge.webp'},
+{id: '292', name: 'Greymatter', image: 'greymatter.webp'},
+{id: '293', name: 'Grimoire', image: 'grimoire.webp'},
+{id: '294', name: 'Grove', image: 'grove.webp'},
+{id: '295', name: 'Gryphus', image: 'gryphus.webp'},
+{id: '296', name: 'Gulletail', image: 'gulletail.webp'},
+{id: '297', name: 'Hail', image: 'hail.webp'},
+{id: '298', name: 'Hakahaka', image: 'hakahaka.webp'},
+{id: '299', name: 'Halo', image: 'halo.webp'},
+{id: '300', name: 'Hanno', image: 'hanno.webp'},
+{id: '301', name: 'Harmony', image: 'harmony.webp'},
+{id: '302', name: 'Harvest', image: 'harvest.webp'},
+{id: '303', name: 'Harvest Moon', image: 'harvest moon.webp'},
+{id: '304', name: 'Heat', image: 'heat.webp'},
+{id: '305', name: 'Heavy Metal', image: 'heavy metal.webp'},
+{id: '306', name: 'Hedera', image: 'hedera.webp'},
+{id: '307', name: 'Helianthus', image: 'helianthus.webp'},
+{id: '308', name: 'Herald', image: 'herald.webp'},
+{id: '309', name: 'Hidden Bolt', image: 'hidden bolt.webp'},
+{id: '310', name: 'Holly', image: 'holly.webp'},
+{id: '311', name: 'Honeybrew', image: 'honeybrew.webp'},
+{id: '312', name: 'Honeyglow', image: 'honeyglow.webp'},
+{id: '313', name: 'Honuhonu', image: 'honuhonu.webp'},
+{id: '314', name: 'Hooded', image: 'hooded.webp'},
+{id: '315', name: 'Howl', image: 'howl.webp'},
+{id: '316', name: 'Huddle', image: 'huddle.webp'},
+{id: '317', name: 'Humuhumu', image: 'humuhumu.webp'},
+{id: '318', name: 'Hydnellum', image: 'hydnellum.webp'},
+{id: '319', name: 'Hydra', image: 'hydra.webp'},
+{id: '320', name: 'Hyperion', image: 'hyperion.webp'},
+{id: '321', name: 'Hypnotic', image: 'hypnotic.webp'},
+{id: '322', name: 'Ice', image: 'ice.webp'},
+{id: '323', name: 'Iceberg', image: 'iceberg.webp'},
+{id: '324', name: 'Icebound', image: 'icebound.webp'},
+{id: '325', name: 'Icecarade', image: 'icecarade.webp'},
+{id: '326', name: 'Ichigo', image: 'ichigo.webp'},
+{id: '327', name: 'Icy Torrent', image: 'icy torrent.webp'},
+{id: '328', name: 'Iden', image: 'iden.webp'},
+{id: '329', name: 'Igluit', image: 'igluit.webp'},
+{id: '330', name: 'Ignaqtus', image: 'ignaqtus.webp'},
+{id: '331', name: 'Ignis', image: 'ignis.webp'},
+{id: '332', name: 'Ignite', image: 'ignite.webp'},
+{id: '333', name: 'Ikatako', image: 'ikatako.webp'},
+{id: '334', name: 'Inferno', image: 'inferno.webp'},
+{id: '335', name: 'Infernus', image: 'infernus.webp'},
+{id: '336', name: 'Infinitum', image: 'infinitum.webp'},
+{id: '337', name: 'Infrared', image: 'infrared.webp'},
+{id: '338', name: 'Invento', image: 'invento.webp'},
+{id: '339', name: 'Ire', image: 'ire.webp'},
+{id: '340', name: 'Iridescent', image: 'iridescent.webp'},
+{id: '341', name: 'Iron', image: 'iron.webp'},
+{id: '342', name: 'Iron Blossom', image: 'iron blossom.webp'},
+{id: '343', name: 'Ironwood', image: 'ironwood.webp'},
+{id: '344', name: 'Ironwrought', image: 'ironwrought.webp'},
+{id: '345', name: 'Ivy', image: 'ivy.webp'},
+{id: '346', name: 'Jackpot', image: 'jackpot.webp'},
+{id: '347', name: 'Jade', image: 'jade.webp'},
+{id: '348', name: 'Jadice', image: 'jadice.webp'},
+{id: '349', name: 'Jamjam', image: 'jamjam.webp'},
+{id: '350', name: 'Jasper', image: 'jasper.webp'},
+{id: '351', name: 'Jester', image: 'jester.webp'},
+{id: '352', name: 'Jet', image: 'jet.webp'},
+{id: '353', name: 'Jetstream', image: 'jetstream.webp'},
+{id: '354', name: 'Jingle', image: 'jingle.webp'},
+{id: '355', name: 'Jumpiplop', image: 'jumpiplop.webp'},
+{id: '356', name: 'Kage', image: 'kage.webp'},
+{id: '357', name: 'Kaiju', image: 'kaiju.webp'},
+{id: '358', name: 'Kairos', image: 'kairos.webp'},
+{id: '359', name: 'Kampos', image: 'kampos.webp'},
+{id: '360', name: 'Kann', image: 'kann.webp'},
+{id: '361', name: 'Karroot', image: 'karroot.webp'},
+{id: '362', name: 'Ketu', image: 'ketu.webp'},
+{id: '363', name: 'Keyper', image: 'keyper.webp'},
+{id: '364', name: 'Khamsin', image: 'khamsin.webp'},
+{id: '365', name: 'Kite', image: 'kite.webp'},
+{id: '366', name: 'Knarr', image: 'knarr.webp'},
+{id: '367', name: 'Kotun', image: 'kotun.webp'},
+{id: '368', name: 'Krampus', image: 'krampus.webp'},
+{id: '369', name: 'Kringle', image: 'kringle.webp'},
+{id: '370', name: 'Kroki', image: 'kroki.webp'},
+{id: '371', name: 'Kwall', image: 'kwall.webp'},
+{id: '372', name: 'Labradorite', image: 'labradorite.webp'},
+{id: '373', name: 'Lace', image: 'lace.webp'},
+{id: '374', name: 'Lacewing', image: 'lacewing.webp'},
+{id: '375', name: 'Lacuna', image: 'lacuna.webp'},
+{id: '376', name: 'Lageto', image: 'lageto.webp'},
+{id: '377', name: 'Lagoon', image: 'lagoon.webp'},
+{id: '378', name: 'Lambovian', image: 'lambovian.webp'},
+{id: '379', name: 'Lapis', image: 'lapis.webp'},
+{id: '380', name: 'Lava', image: 'lava.webp'},
+{id: '381', name: 'Lazuli', image: 'lazuli.webp'},
+{id: '382', name: 'Leaf', image: 'leaf.webp'},
+{id: '383', name: 'Leap Year', image: 'leap year.webp'},
+{id: '384', name: 'Leathery', image: 'leathery.webp'},
+{id: '385', name: 'Leonian', image: 'leonian.webp'},
+{id: '386', name: 'Liberty', image: 'liberty.webp'},
+{id: '387', name: 'Libretto', image: 'libretto.webp'},
+{id: '388', name: 'Librian', image: 'librian.webp'},
+{id: '389', name: 'Lichen', image: 'lichen.webp'},
+{id: '390', name: 'Light', image: 'light.webp'},
+{id: '391', name: 'Light Rift', image: 'light rift.webp'},
+{id: '392', name: 'Lightmare', image: 'lightmare.webp'},
+{id: '393', name: 'Lightmatter', image: 'lightmatter.webp'},
+{id: '394', name: 'Lightning', image: 'lightning.webp'},
+{id: '395', name: 'Lightning Rift', image: 'lightning rift.webp'},
+{id: '396', name: 'Limulimu', image: 'limulimu.webp'},
+{id: '397', name: 'Liveloch', image: 'liveloch.webp'},
+{id: '398', name: 'Lodestone', image: 'lodestone.webp'},
+{id: '399', name: 'Lokilure', image: 'lokilure.webp'},
+{id: '400', name: 'Longcicle', image: 'longcicle.webp'},
+{id: '401', name: 'Loot', image: 'loot.webp'},
+{id: '402', name: 'Lotus', image: 'lotus.webp'},
+{id: '403', name: 'Love', image: 'love.webp'},
+{id: '404', name: 'Lovesick', image: 'lovesick.webp'},
+{id: '405', name: 'Lovey', image: 'lovey.webp'},
+{id: '406', name: 'LoveyDovey', image: 'loveydovey.webp'},
+{id: '407', name: 'Lovonone', image: 'lovonone.webp'},
+{id: '408', name: 'Luck', image: 'luck.webp'},
+{id: '409', name: 'Lullaby', image: 'lullaby.webp'},
+{id: '410', name: 'Lumineux', image: 'lumineux.webp'},
+{id: '411', name: 'Luminous', image: 'luminous.webp'},
+{id: '412', name: 'Lunar Eclipse', image: 'lunar eclipse.webp'},
+{id: '413', name: 'Lunis', image: 'lunis.webp'},
+{id: '414', name: 'Lunk', image: 'lunk.webp'},
+{id: '415', name: 'Lycan', image: 'lycan.webp'},
+{id: '416', name: 'Lyuba', image: 'lyuba.webp'},
+{id: '417', name: 'Macabre', image: 'macabre.webp'},
+{id: '418', name: 'Machina', image: 'machina.webp'},
+{id: '419', name: 'Magma', image: 'magma.webp'},
+{id: '420', name: 'Magnetic', image: 'magnetic.webp'},
+{id: '421', name: 'Magnolia', image: 'magnolia.webp'},
+{id: '422', name: 'Malachite', image: 'malachite.webp'},
+{id: '423', name: 'Malefice', image: 'malefice.webp'},
+{id: '424', name: 'Manomano', image: 'manomano.webp'},
+{id: '425', name: 'Mantasu', image: 'mantasu.webp'},
+{id: '426', name: 'Marbletail', image: 'marbletail.webp'},
+{id: '427', name: 'Margento', image: 'margento.webp'},
+{id: '428', name: 'Masque', image: 'masque.webp'},
+{id: '429', name: 'Maw', image: 'maw.webp'},
+{id: '430', name: 'Maze', image: 'maze.webp'},
+{id: '431', name: 'Meadow', image: 'meadow.webp'},
+{id: '432', name: 'Melancholy', image: 'melancholy.webp'},
+{id: '433', name: 'Melovine', image: 'melovine.webp'},
+{id: '434', name: 'Mesmer', image: 'mesmer.webp'},
+{id: '435', name: 'Mesmerus', image: 'mesmerus.webp'},
+{id: '436', name: 'Mesolite', image: 'mesolite.webp'},
+{id: '437', name: 'Metal', image: 'metal.webp'},
+{id: '438', name: 'Metal Rift', image: 'metal rift.webp'},
+{id: '439', name: 'Meteor', image: 'meteor.webp'},
+{id: '440', name: 'Miasma', image: 'miasma.webp'},
+{id: '441', name: 'Midday', image: 'midday.webp'},
+{id: '442', name: 'Midnight', image: 'midnight.webp'},
+{id: '443', name: 'Minchi', image: 'minchi.webp'},
+{id: '444', name: 'Mine', image: 'mine.webp'},
+{id: '445', name: 'Mirage', image: 'mirage.webp'},
+{id: '446', name: 'Mirror', image: 'mirror.webp'},
+{id: '447', name: 'Misfortune', image: 'misfortune.webp'},
+{id: '448', name: 'Mistletoe', image: 'mistletoe.webp'},
+{id: '449', name: 'Molten', image: 'molten.webp'},
+{id: '450', name: 'Monte', image: 'monte.webp'},
+{id: '451', name: 'Moon', image: 'moon.webp'},
+{id: '452', name: 'Moonstruck', image: 'moonstruck.webp'},
+{id: '453', name: 'Moriante', image: 'moriante.webp'},
+{id: '454', name: 'Morphimagus', image: 'morphimagus.webp'},
+{id: '455', name: 'Morpho', image: 'morpho.webp'},
+{id: '456', name: 'Moss', image: 'moss.webp'},
+{id: '457', name: 'Mosser', image: 'mosser.webp'},
+{id: '458', name: 'Motley', image: 'motley.webp'},
+{id: '459', name: 'Mountain', image: 'mountain.webp'},
+{id: '460', name: 'Mountain Sun', image: 'mountain sun.webp'},
+{id: '461', name: 'Mud', image: 'mud.webp'},
+{id: '462', name: 'Murano', image: 'murano.webp'},
+{id: '463', name: 'Muse', image: 'muse.webp'},
+{id: '464', name: 'Mushry', image: 'mushry.webp'},
+{id: '465', name: 'Mylio', image: 'mylio.webp'},
+{id: '466', name: 'Nacre', image: 'nacre.webp'},
+{id: '467', name: 'Narcis', image: 'narcis.webp'},
+{id: '468', name: 'Nature', image: 'nature.webp'},
+{id: '469', name: 'Nebula', image: 'nebula.webp'},
+{id: '470', name: 'Nectar', image: 'nectar.webp'},
+{id: '471', name: 'Neoteric', image: 'neoteric.webp'},
+{id: '472', name: 'Nesting', image: 'nesting.webp'},
+{id: '473', name: 'Nether', image: 'nether.webp'},
+{id: '474', name: 'Neyvee', image: 'neyvee.webp'},
+{id: '475', name: 'Niamh', image: 'niamh.webp'},
+{id: '476', name: 'Nibwhip', image: 'nibwhip.webp'},
+{id: '477', name: 'Nightbloom', image: 'nightbloom.webp'},
+{id: '478', name: 'Nightmare', image: 'nightmare.webp'},
+{id: '479', name: 'Nightshade', image: 'nightshade.webp'},
+{id: '480', name: 'Nimbus', image: 'nimbus.webp'},
+{id: '481', name: 'Nomnoter', image: 'nomnoter.webp'},
+{id: '482', name: 'Nosferatu', image: 'nosferatu.webp'},
+{id: '483', name: 'Nova', image: 'nova.webp'},
+{id: '484', name: 'Nox', image: 'nox.webp'},
+{id: '485', name: 'Nubis', image: 'nubis.webp'},
+{id: '486', name: 'Oaris', image: 'oaris.webp'},
+{id: '487', name: 'Oasian', image: 'oasian.webp'},
+{id: '488', name: 'Obsidian', image: 'obsidian.webp'},
+{id: '489', name: 'Ocular', image: 'ocular.webp'},
+{id: '490', name: 'Okenite', image: 'okenite.webp'},
+{id: '491', name: 'Omen', image: 'omen.webp'},
+{id: '492', name: 'Oni', image: 'oni.webp'},
+{id: '493', name: 'Ooze', image: 'ooze.webp'},
+{id: '494', name: 'Opal', image: 'opal.webp'},
+{id: '495', name: 'Opulent', image: 'opulent.webp'},
+{id: '496', name: 'Oracle', image: 'oracle.webp'},
+{id: '497', name: 'Orchid', image: 'orchid.webp'},
+{id: '498', name: 'Orlena', image: 'orlena.webp'},
+{id: '499', name: 'Ornamental', image: 'ornamental.webp'},
+{id: '500', name: 'Ortreat', image: 'ortreat.webp'},
+{id: '501', name: 'Osteryx', image: 'osteryx.webp'},
+{id: '502', name: 'Ouroboros', image: 'ouroboros.webp'},
+{id: '503', name: 'Outrider', image: 'outrider.webp'},
+{id: '504', name: 'Ovalith', image: 'ovalith.webp'},
+{id: '505', name: 'Palladium', image: 'palladium.webp'},
+{id: '506', name: 'Pangolian', image: 'pangolian.webp'},
+{id: '507', name: 'Panlong', image: 'panlong.webp'},
+{id: '508', name: 'Paper', image: 'paper.webp'},
+{id: '509', name: 'Party', image: 'party.webp'},
+{id: '510', name: 'Pearl', image: 'pearl.webp'},
+{id: '511', name: 'Pearlescent', image: 'pearlescent.webp'},
+{id: '512', name: 'Peoni', image: 'peoni.webp'},
+{id: '513', name: 'Pepper', image: 'pepper.webp'},
+{id: '514', name: 'Peridot', image: 'peridot.webp'},
+{id: '515', name: 'Permafrost', image: 'permafrost.webp'},
+{id: '516', name: 'Petunia', image: 'petunia.webp'},
+{id: '517', name: 'Phantom', image: 'phantom.webp'},
+{id: '518', name: 'Pharaoh', image: 'pharaoh.webp'},
+{id: '519', name: 'Pikeleaf', image: 'pikeleaf.webp'},
+{id: '520', name: 'Pisceian', image: 'pisceian.webp'},
+{id: '521', name: 'Pixie', image: 'pixie.webp'},
+{id: '522', name: 'Plains', image: 'plains.webp'},
+{id: '523', name: 'Plant', image: 'plant.webp'},
+{id: '524', name: 'Plant Rift', image: 'plant rift.webp'},
+{id: '525', name: 'Plasma', image: 'plasma.webp'},
+{id: '526', name: 'Plate', image: 'plate.webp'},
+{id: '527', name: 'Plateau', image: 'plateau.webp'},
+{id: '528', name: 'Platinum', image: 'platinum.webp'},
+{id: '529', name: 'Plumewing', image: 'plumewing.webp'},
+{id: '530', name: 'Plumpkin', image: 'plumpkin.webp'},
+{id: '531', name: 'Poison', image: 'poison.webp'},
+{id: '532', name: 'Polarian', image: 'polarian.webp'},
+{id: '533', name: 'Pollen', image: 'pollen.webp'},
+{id: '534', name: 'Pollenizer', image: 'pollenizer.webp'},
+{id: '535', name: 'Pond', image: 'pond.webp'},
+{id: '536', name: 'PonkiPong', image: 'ponkipong.webp'},
+{id: '537', name: 'Porcelain', image: 'porcelain.webp'},
+{id: '538', name: 'Portent', image: 'portent.webp'},
+{id: '539', name: 'Poshwing', image: 'poshwing.webp'},
+{id: '540', name: 'Pouke', image: 'pouke.webp'},
+{id: '541', name: 'Prestige', image: 'prestige.webp'},
+{id: '542', name: 'Prestina', image: 'prestina.webp'},
+{id: '543', name: 'PrickleFluff', image: 'pricklefluff.webp'},
+{id: '544', name: 'Prism', image: 'prism.webp'},
+{id: '545', name: 'Procyon', image: 'procyon.webp'},
+{id: '546', name: 'Professo', image: 'professo.webp'},
+{id: '547', name: 'Promethium', image: 'promethium.webp'},
+{id: '548', name: 'Psyche', image: 'psyche.webp'},
+{id: '549', name: 'Puffles', image: 'puffles.webp'},
+{id: '550', name: 'Punk', image: 'punk.webp'},
+{id: '551', name: 'Pyrite', image: 'pyrite.webp'},
+{id: '552', name: 'Quaa', image: 'quaa.webp'},
+{id: '553', name: 'Quake', image: 'quake.webp'},
+{id: '554', name: 'Quantum', image: 'quantum.webp'},
+{id: '555', name: 'Quartz', image: 'quartz.webp'},
+{id: '556', name: 'Quicksand', image: 'quicksand.webp'},
+{id: '557', name: 'Quicksilver', image: 'quicksilver.webp'},
+{id: '558', name: 'Quintessence', image: 'quintessence.webp'},
+{id: '559', name: 'Radiant', image: 'radiant.webp'},
+{id: '560', name: 'Ragnarok', image: 'ragnarok.webp'},
+{id: '561', name: 'Rain', image: 'rain.webp'},
+{id: '562', name: 'Rainbow', image: 'rainbow.webp'},
+{id: '563', name: 'Rayleian', image: 'rayleian.webp'},
+{id: '564', name: 'Razortail', image: 'razortail.webp'},
+{id: '565', name: 'Razzle', image: 'razzle.webp'},
+{id: '566', name: 'Redbeard', image: 'redbeard.webp'},
+{id: '567', name: 'Regal', image: 'regal.webp'},
+{id: '568', name: 'Regift', image: 'regift.webp'},
+{id: '569', name: 'Reindeer', image: 'reindeer.webp'},
+{id: '570', name: 'Reminiscence', image: 'reminiscence.webp'},
+{id: '571', name: 'Rhinotorch', image: 'rhinotorch.webp'},
+{id: '572', name: 'Ribbon', image: 'ribbon.webp'},
+{id: '573', name: 'Rigel', image: 'rigel.webp'},
+{id: '574', name: 'Riptide', image: 'riptide.webp'},
+{id: '575', name: 'River', image: 'river.webp'},
+{id: '576', name: 'Root', image: 'root.webp'},
+{id: '577', name: 'Rose', image: 'rose.webp'},
+{id: '578', name: 'Rosebud', image: 'rosebud.webp'},
+{id: '579', name: 'Rosegold', image: 'rosegold.webp'},
+{id: '580', name: 'Rotblossom', image: 'rotblossom.webp'},
+{id: '581', name: 'Rubrum', image: 'rubrum.webp'},
+{id: '582', name: 'Ruby', image: 'ruby.webp'},
+{id: '583', name: 'Ruckus', image: 'ruckus.webp'},
+{id: '584', name: 'Ruin', image: 'ruin.webp'},
+{id: '585', name: 'Rust', image: 'rust.webp'},
+{id: '586', name: 'Saccharine', image: 'saccharine.webp'},
+{id: '587', name: 'Sagittarian', image: 'sagittarian.webp'},
+{id: '588', name: 'Saharus', image: 'saharus.webp'},
+{id: '589', name: 'Sailback', image: 'sailback.webp'},
+{id: '590', name: 'Sakura', image: 'sakura.webp'},
+{id: '591', name: 'Salamander', image: 'salamander.webp'},
+{id: '592', name: 'Sand', image: 'sand.webp'},
+{id: '593', name: 'Sandscale', image: 'sandscale.webp'},
+{id: '594', name: 'Sandstorm', image: 'sandstorm.webp'},
+{id: '595', name: 'Sanguinite', image: 'sanguinite.webp'},
+{id: '596', name: 'Sapphire', image: 'sapphire.webp'},
+{id: '597', name: 'Satin', image: 'satin.webp'},
+{id: '598', name: 'Scarab', image: 'scarab.webp'},
+{id: '599', name: 'Scorch', image: 'scorch.webp'},
+{id: '600', name: 'Scoria', image: 'scoria.webp'},
+{id: '601', name: 'Scorn', image: 'scorn.webp'},
+{id: '602', name: 'Scorpionian', image: 'scorpionian.webp'},
+{id: '603', name: 'Scourge', image: 'scourge.webp'},
+{id: '604', name: 'Scout', image: 'scout.webp'},
+{id: '605', name: 'Scribe', image: 'scribe.webp'},
+{id: '606', name: 'Scryer', image: 'scryer.webp'},
+{id: '607', name: 'Scuttle', image: 'scuttle.webp'},
+{id: '608', name: 'Sea Shanty', image: 'sea shanty.webp'},
+{id: '609', name: 'Seasonal', image: 'seasonal.webp'},
+{id: '610', name: 'Seaweed', image: 'seaweed.webp'},
+{id: '611', name: 'Seed', image: 'seed.webp'},
+{id: '612', name: 'Seraph', image: 'seraph.webp'},
+{id: '613', name: 'Serenity', image: 'serenity.webp'},
+{id: '614', name: 'Serket', image: 'serket.webp'},
+{id: '615', name: 'Shackle', image: 'shackle.webp'},
+{id: '616', name: 'Shadow', image: 'shadow.webp'},
+{id: '617', name: 'Shadowflash', image: 'shadowflash.webp'},
+{id: '618', name: 'Shaper', image: 'shaper.webp'},
+{id: '619', name: 'Shield', image: 'shield.webp'},
+{id: '620', name: 'Shimmer', image: 'shimmer.webp'},
+{id: '621', name: 'Shining', image: 'shining.webp'},
+{id: '622', name: 'Shiver', image: 'shiver.webp'},
+{id: '623', name: 'Shockproof', image: 'shockproof.webp'},
+{id: '624', name: 'Silver', image: 'silver.webp'},
+{id: '625', name: 'Silver Olympus', image: 'silver olympus.webp'},
+{id: '626', name: 'Silverline', image: 'silverline.webp'},
+{id: '627', name: 'Singularity', image: 'singularity.webp'},
+{id: '628', name: 'Sleighbell', image: 'sleighbell.webp'},
+{id: '629', name: 'Smigi', image: 'smigi.webp'},
+{id: '630', name: 'Smitten', image: 'smitten.webp'},
+{id: '631', name: 'Smoke', image: 'smoke.webp'},
+{id: '632', name: 'Smolder', image: 'smolder.webp'},
+{id: '633', name: 'Smoulderbrush', image: 'smoulderbrush.webp'},
+{id: '634', name: 'Snapper', image: 'snapper.webp'},
+{id: '635', name: 'Snootroot', image: 'snootroot.webp'},
+{id: '636', name: 'Snooz', image: 'snooz.webp'},
+{id: '637', name: 'Snopaw', image: 'snopaw.webp'},
+{id: '638', name: 'Snow', image: 'snow.webp'},
+{id: '639', name: 'Snowball', image: 'snowball.webp'},
+{id: '640', name: 'Snowbrush', image: 'snowbrush.webp'},
+{id: '641', name: 'Snowdrop', image: 'snowdrop.webp'},
+{id: '642', name: 'Snowpocalypse', image: 'snowpocalypse.webp'},
+{id: '643', name: 'Snowsquall', image: 'snowsquall.webp'},
+{id: '644', name: 'Snowy Bronze', image: 'snowy bronze.webp'},
+{id: '645', name: 'Snowy Gold', image: 'snowy gold.webp'},
+{id: '646', name: 'Snowy Silver', image: 'snowy silver.webp'},
+{id: '647', name: 'Solar Eclipse', image: 'solar eclipse.webp'},
+{id: '648', name: 'Solarflare', image: 'solarflare.webp'},
+{id: '649', name: 'Solary', image: 'solary.webp'},
+{id: '650', name: 'Solis', image: 'solis.webp'},
+{id: '651', name: 'Solstice', image: 'solstice.webp'},
+{id: '652', name: 'Somnig', image: 'somnig.webp'},
+{id: '653', name: 'Sonic', image: 'sonic.webp'},
+{id: '654', name: 'Soot', image: 'soot.webp'},
+{id: '655', name: 'Sorarian', image: 'sorarian.webp'},
+{id: '656', name: 'Soriak', image: 'soriak.webp'},
+{id: '657', name: 'Sow', image: 'sow.webp'},
+{id: '658', name: 'Spark', image: 'spark.webp'},
+{id: '659', name: 'Sparkles', image: 'sparkles.webp'},
+{id: '660', name: 'Spectrapod', image: 'spectrapod.webp'},
+{id: '661', name: 'Spectre', image: 'spectre.webp'},
+{id: '662', name: 'Spellmason', image: 'spellmason.webp'},
+{id: '663', name: 'Spinky', image: 'spinky.webp'},
+{id: '664', name: 'Spirit', image: 'spirit.webp'},
+{id: '665', name: 'Spite', image: 'spite.webp'},
+{id: '666', name: 'Spore', image: 'spore.webp'},
+{id: '667', name: 'Spring', image: 'spring.webp'},
+{id: '668', name: 'Sprite', image: 'sprite.webp'},
+{id: '669', name: 'Spritely', image: 'spritely.webp'},
+{id: '670', name: 'Sprout', image: 'sprout.webp'},
+{id: '671', name: 'Squall', image: 'squall.webp'},
+{id: '672', name: 'Squish', image: 'squish.webp'},
+{id: '673', name: 'Stage', image: 'stage.webp'},
+{id: '674', name: 'Standstone', image: 'standstone.webp'},
+{id: '675', name: 'Starlight', image: 'starlight.webp'},
+{id: '676', name: 'Starshine', image: 'starshine.webp'},
+{id: '677', name: 'Starwing', image: 'starwing.webp'},
+{id: '678', name: 'Steam', image: 'steam.webp'},
+{id: '679', name: 'Steel', image: 'steel.webp'},
+{id: '680', name: 'Stella', image: 'stella.webp'},
+{id: '681', name: 'Stoneheart', image: 'stoneheart.webp'},
+{id: '682', name: 'Stoneshell', image: 'stoneshell.webp'},
+{id: '683', name: 'Storm', image: 'storm.webp'},
+{id: '684', name: 'Stygian', image: 'stygian.webp'},
+{id: '685', name: 'Subterranean', image: 'subterranean.webp'},
+{id: '686', name: 'Sugarmitten', image: 'sugarmitten.webp'},
+{id: '687', name: 'Sugarplum', image: 'sugarplum.webp'},
+{id: '688', name: 'Sulfur', image: 'sulfur.webp'},
+{id: '689', name: 'Sumi', image: 'sumi.webp'},
+{id: '690', name: 'Summer', image: 'summer.webp'},
+{id: '691', name: 'Sun', image: 'sun.webp'},
+{id: '692', name: 'Sunscorch', image: 'sunscorch.webp'},
+{id: '693', name: 'Sunstruck', image: 'sunstruck.webp'},
+{id: '694', name: 'Surge', image: 'surge.webp'},
+{id: '695', name: 'Surprise', image: 'surprise.webp'},
+{id: '696', name: 'Swallowtail', image: 'swallowtail.webp'},
+{id: '697', name: 'Swamp', image: 'swamp.webp'},
+{id: '698', name: 'Sweetheart', image: 'sweetheart.webp'},
+{id: '699', name: 'Swiftgrace', image: 'swiftgrace.webp'},
+{id: '700', name: 'Tansy', image: 'tansy.webp'},
+{id: '701', name: 'Taurian', image: 'taurian.webp'},
+{id: '702', name: 'Tebori', image: 'tebori.webp'},
+{id: '703', name: 'Techno', image: 'techno.webp'},
+{id: '704', name: 'Teidian', image: 'teidian.webp'},
+{id: '705', name: 'Tempest', image: 'tempest.webp'},
+{id: '706', name: 'Teozinte', image: 'teozinte.webp'},
+{id: '707', name: 'Terracotta', image: 'terracotta.webp'},
+{id: '708', name: 'Terradiem', image: 'terradiem.webp'},
+{id: '709', name: 'Thicket', image: 'thicket.webp'},
+{id: '710', name: 'Thistle', image: 'thistle.webp'},
+{id: '711', name: 'Thorn', image: 'thorn.webp'},
+{id: '712', name: 'Thrasher', image: 'thrasher.webp'},
+{id: '713', name: 'Thunder', image: 'thunder.webp'},
+{id: '714', name: 'Thunderbird', image: 'thunderbird.webp'},
+{id: '715', name: 'Thunderbolt', image: 'thunderbolt.webp'},
+{id: '716', name: 'Thundersnow', image: 'thundersnow.webp'},
+{id: '717', name: 'Tiamat', image: 'tiamat.webp'},
+{id: '718', name: 'Tickles', image: 'tickles.webp'},
+{id: '719', name: 'Tidal', image: 'tidal.webp'},
+{id: '720', name: 'Tidepool', image: 'tidepool.webp'},
+{id: '721', name: 'Tien', image: 'tien.webp'},
+{id: '722', name: 'Tinsel', image: 'tinsel.webp'},
+{id: '723', name: 'Toboggan', image: 'toboggan.webp'},
+{id: '724', name: 'Toco', image: 'toco.webp'},
+{id: '725', name: 'Topaz', image: 'topaz.webp'},
+{id: '726', name: 'Totem', image: 'totem.webp'},
+{id: '727', name: 'Tourmaline', image: 'tourmaline.webp'},
+{id: '728', name: 'Tranquil', image: 'tranquil.webp'},
+{id: '729', name: 'Tree', image: 'tree.webp'},
+{id: '730', name: 'Trench', image: 'trench.webp'},
+{id: '731', name: 'Trepak', image: 'trepak.webp'},
+{id: '732', name: 'Trick', image: 'trick.webp'},
+{id: '733', name: 'Trilobite', image: 'trilobite.webp'},
+{id: '734', name: 'Trimera', image: 'trimera.webp'},
+{id: '735', name: 'Trinket', image: 'trinket.webp'},
+{id: '736', name: 'Triple Leap Year', image: 'triple leap year.webp'},
+{id: '737', name: 'Triple Rainbow', image: 'triple rainbow.webp'},
+{id: '738', name: 'Trove', image: 'trove.webp'},
+{id: '739', name: 'Ts\'aishen', image: 'tsaishen.webp'},
+{id: '740', name: 'Tulip', image: 'tulip.webp'},
+{id: '741', name: 'Tumblethorn', image: 'tumblethorn.webp'},
+{id: '742', name: 'Turquoise', image: 'turquoise.webp'},
+{id: '743', name: 'Tusk', image: 'tusk.webp'},
+{id: '744', name: 'Tutan', image: 'tutan.webp'},
+{id: '745', name: 'Twinkle', image: 'twinkle.webp'},
+{id: '746', name: 'Umbra', image: 'umbra.webp'},
+{id: '747', name: 'Undau', image: 'undau.webp'},
+{id: '748', name: 'Valeodon', image: 'valeodon.webp'},
+{id: '749', name: 'Valor', image: 'valor.webp'},
+{id: '750', name: 'Vampir', image: 'vampir.webp'},
+{id: '751', name: 'Vanguard', image: 'vanguard.webp'},
+{id: '752', name: 'Vaul', image: 'vaul.webp'},
+{id: '753', name: 'Venture', image: 'venture.webp'},
+{id: '754', name: 'Verdigris', image: 'verdigris.webp'},
+{id: '755', name: 'Verglace', image: 'verglace.webp'},
+{id: '756', name: 'Vibe', image: 'vibe.webp'},
+{id: '757', name: 'Victory', image: 'victory.webp'},
+{id: '758', name: 'Vidalia', image: 'vidalia.webp'},
+{id: '759', name: 'Violetta', image: 'violetta.webp'},
+{id: '760', name: 'Vipera', image: 'vipera.webp'},
+{id: '761', name: 'Virgonian', image: 'virgonian.webp'},
+{id: '762', name: 'Viridian', image: 'viridian.webp'},
+{id: '763', name: 'Void', image: 'void.webp'},
+{id: '764', name: 'Voltaic', image: 'voltaic.webp'},
+{id: '765', name: 'Vortex', image: 'vortex.webp'},
+{id: '766', name: 'Watch', image: 'watch.webp'},
+{id: '767', name: 'Water', image: 'water.webp'},
+{id: '768', name: 'Water Rift', image: 'water rift.webp'},
+{id: '769', name: 'Waterwalker', image: 'waterwalker.webp'},
+{id: '770', name: 'Wavelyte', image: 'wavelyte.webp'},
+{id: '771', name: 'Weaver', image: 'weaver.webp'},
+{id: '772', name: 'Wendigo', image: 'wendigo.webp'},
+{id: '773', name: 'Whimsical', image: 'whimsical.webp'},
+{id: '774', name: 'Whirlwind', image: 'whirlwind.webp'},
+{id: '775', name: 'Wick', image: 'wick.webp'},
+{id: '776', name: 'Wilderness', image: 'wilderness.webp'},
+{id: '777', name: 'Willow', image: 'willow.webp'},
+{id: '778', name: 'Wind', image: 'wind.webp'},
+{id: '779', name: 'Winter', image: 'winter.webp'},
+{id: '780', name: 'Wisp', image: 'wisp.webp'},
+{id: '781', name: 'Wolper', image: 'wolper.webp'},
+{id: '782', name: 'Woodvine', image: 'woodvine.webp'},
+{id: '783', name: 'Woolen', image: 'woolen.webp'},
+{id: '784', name: 'Woven', image: 'woven.webp'},
+{id: '785', name: 'Wraith', image: 'wraith.webp'},
+{id: '786', name: 'Wrath', image: 'wrath.webp'},
+{id: '787', name: 'Wyrmwood', image: 'wyrmwood.webp'},
+{id: '788', name: 'Xanthium', image: 'xanthium.webp'},
+{id: '789', name: 'Yanghis', image: 'yanghis.webp'},
+{id: '790', name: 'Yarr', image: 'yarr.webp'},
+{id: '791', name: 'Yeti', image: 'yeti.webp'},
+{id: '792', name: 'Yolkwing', image: 'yolkwing.webp'},
+{id: '793', name: 'Yule', image: 'yule.webp'},
+{id: '794', name: 'Zaffer', image: 'zaffer.webp'},
+{id: '795', name: 'Zero', image: 'zero.webp'},
+{id: '796', name: 'Zilla', image: 'zilla.webp'},
+{id: '797', name: 'Zipzap', image: 'zipzap.webp'},
+{id: '798', name: 'Zombie', image: 'zombie.webp'},
+{id: '799', name: 'Zumi', image: 'zumi.webp'},
+{id: '800', name: 'Darkarm', image: 'darkarm.webp'},
+{id: '801', name: 'Kingstone', image: 'kingstone.webp'},
+{id: '802', name: 'Nimue', image: 'nimue.webp'},
+{id: '803', name: 'Armor', image: 'armor.webp'},
+{id: '804', name: 'Redfrill', image: 'redfrill.webp'},
+{id: '805', name: 'Shelly', image: 'shelly.webp'},
+{id: '806', name: 'Kelpie', image: 'kelpie.webp'},
+{id: '807', name: 'Quadruple Leap Year', image: 'quadruple leap year.webp'},
+{id: '808', name: 'Sipho', image: 'sipho.webp'},
+{id: '809', name: 'Grin', image: 'grin.webp'},
+{id: '810', name: 'Leviathan', image: 'leviathan.webp'},
+{id: '811', name: 'Aquatech', image: 'aquatech.webp'},
+{id: '812', name: 'Ogre', image: 'ogre.webp'},
+{id: '813', name: 'Moppey', image: 'moppey.webp'},
+{id: '814', name: 'Hex', image: 'hex.webp'},
+{id: '815', name: 'Treebark', image: 'treebark.webp'},
+{id: '816', name: 'Feiya', image: 'feiya.webp'},
+{id: '817', name: 'Quamera', image: 'quamera.webp'},
+{id: '818', name: 'Nottub', image: 'nottub.webp'},
+{id: '819', name: 'Spelldome', image: 'spelldome.webp'},
+{id: '820', name: 'Alchemy', image: 'alchemy.webp'},
+{id: '821', name: 'Polarus', image: 'polarus.webp'},
+{id: '822', name: 'Dragpir', image: 'dragpir.webp'},
+{id: '823', name: 'Spooker', image: 'spooker.webp'},
+{id: '824', name: 'Awoo', image: 'awoo.webp'},
+{id: '825', name: 'Drack-o-Lantern', image: 'drack-o-lantern.webp'},
+{id: '826', name: 'Candycorn', image: 'candycorn.webp'},
+{id: '827', name: 'Yaga', image: 'yaga.webp'},
+{id: '828', name: 'Bruntal', image: 'bruntal.webp'},
+{id: '829', name: 'Dracomancy 1', image: 'dracomancy 1.webp'},
+{id: '830', name: 'Doily', image: 'doily.webp'},
+{id: '831', name: 'Jiaolong', image: 'jiaolong.webp'},
+{id: '832', name: 'Gingerbread', image: 'gingerbread.webp'},
+{id: '833', name: 'Eaves', image: 'eaves.webp'},
+{id: '834', name: 'Tectonic', image: 'tectonic.webp'},
+{id: '835', name: 'Lavaloch', image: 'lavaloch.webp'},
+{id: '836', name: 'Iceclaw', image: 'iceclaw.webp'},
+{id: '837', name: 'Flamegobbler', image: 'flamegobbler.webp'},
+{id: '838', name: 'Pyros & Glacius', image: 'pyros & glacius.webp'},
+{id: '839', name: 'Aquadruple Leap Year', image: 'aquadruple leap year.webp'},
+{id: '840', name: 'Earthcore', image: 'earthcore.webp'},
+{id: '841', name: 'Volcano', image: 'volcano.webp'},
+{id: '842', name: 'Lilypond', image: 'lilypond.webp'},
+{id: '843', name: 'Hasu', image: 'hasu.webp'},
+{id: '844', name: 'Smoothie', image: 'smoothie.webp'},
+{id: '845', name: 'Maracas', image: 'maracas.webp'},
+{id: '846', name: 'Waapawaapa', image: 'waapawaapa.webp'},
+{id: '847', name: 'Shy', image: 'shy.webp'},
+{id: '848', name: 'Hollow', image: 'hollow.webp'},
+{id: '849', name: 'Koholahola', image: 'koholahola.webp'},
+{id: '850', name: 'Flamindos', image: 'flamindos.webp'},
+{id: '851', name: 'Snowflake 1', image: 'snowflake 1.webp'},
+{id: '852', name: 'Snowflake 2', image: 'snowflake 2.webp'},
+{id: '853', name: 'Snowflake 3', image: 'snowflake 3.webp'},
+{id: '854', name: 'Snowflake 4', image: 'snowflake 4.webp'},
+{id: '855', name: 'Snowflake 5', image: 'snowflake 5.webp'},
+{id: '856', name: 'Snowflake 6', image: 'snowflake 6.webp'},
+{id: '857', name: 'Snowflake 7', image: 'snowflake 7.webp'},
+{id: '858', name: 'Monolith 1', image: 'monolith 1.webp'},
+{id: '859', name: 'Monolith 2', image: 'monolith 2.webp'},
+{id: '860', name: 'Monolith 3', image: 'monolith 3.webp'},
+{id: '861', name: 'Monolith 4', image: 'monolith 4.webp'},
+{id: '862', name: 'Monolith 5', image: 'monolith 5.webp'},
+{id: '863', name: 'Monolith 6', image: 'monolith 6.webp'},
+{id: '864', name: 'Dracomancy 2', image: 'dracomancy 2.webp'},
+{id: '865', name: 'Dracomancy 3', image: 'dracomancy 3.webp'},
+{id: '866', name: 'Dracomancy 4', image: 'dracomancy 4.webp'},
+{id: '867', name: 'Sourtail', image: 'sourtail.webp'},
+{id: '868', name: 'Caramelo', image: 'caramelo.webp'},
+{id: '869', name: 'Swirly', image: 'swirly.webp'},
+{id: '870', name: 'Jiggly', image: 'jiggly.webp'},
+{id: '871', name: 'Legit', image: 'legit.webp'},
+{id: '872', name: 'Cupcake', image: 'cupcake.webp'},
+{id: '873', name: 'Bakey', image: 'bakey.webp'},
+{id: '874', name: 'Mimicake', image: 'mimicake.webp'},
+{id: '875', name: 'Fragolita', image: 'fragolita.webp'},
+{id: '876', name: 'Novem', image: 'novem.webp'},
+{id: '877', name: 'Redbelly', image: 'redbelly.webp'},
+{id: '878', name: 'Lucee', image: 'lucee.webp'},
+{id: '879', name: 'Dousa', image: 'dousa.webp'},
+{id: '880', name: 'Maelstrom', image: 'maelstrom.webp'},
+{id: '881', name: 'Blobert', image: 'blobert.webp'},
+{id: '882', name: 'Bounty', image: 'bounty.webp'},
+{id: '883', name: 'Aykula', image: 'aykula.webp'},
+{id: '884', name: 'Ghostly Fire', image: 'ghostly fire.webp'},
+{id: '885', name: 'Ghostly Plant', image: 'ghostly plant.webp'},
+{id: '886', name: 'Ghostly Earth', image: 'ghostly earth.webp'},
+{id: '887', name: 'Ghostly Cold', image: 'ghostly cold.webp'},
+{id: '888', name: 'Ghostly Poison', image: 'ghostly poison.webp'},
+{id: '889', name: 'Ghostly Flower', image: 'ghostly flower.webp'},
+{id: '890', name: 'Ghostly Glacier', image: 'ghostly glacier.webp'},
+{id: '891', name: 'Ghostly Mountain', image: 'ghostly mountain.webp'},
+{id: '892', name: 'Ghostly Lava', image: 'ghostly lava.webp'},
+{id: '893', name: 'Ghostly Obsidian', image: 'ghostly obsidian.webp'},
+{id: '894', name: 'Ghostly Lichen', image: 'ghostly lichen.webp'},
+{id: '895', name: 'Ghostly Evergreen', image: 'ghostly evergreen.webp'},
+{id: '896', name: 'Ghostly Moss', image: 'ghostly moss.webp'},
+{id: '897', name: 'Ghostly Tree', image: 'ghostly tree.webp'},
+{id: '898', name: 'Ghostly Bone', image: 'ghostly bone.webp'},
+{id: '899', name: 'Ghostly Ghost', image: 'ghostly ghost.webp'},
+{id: '900', name: 'Ghostly Spirit', image: 'ghostly spirit.webp'},
+{id: '901', name: 'Ghostly Spectre', image: 'ghostly spectre.webp'},
+{id: '902', name: 'Ghostly Oni', image: 'ghostly oni.webp'},
+{id: '903', name: 'Ghostly Nosferatu', image: 'ghostly nosferatu.webp'},
+{id: '904', name: 'Ghostly Decay', image: 'ghostly decay.webp'},
+{id: '905', name: 'Ghostly Gift', image: 'ghostly gift.webp'},
+{id: '906', name: 'Ghostly Trinket', image: 'ghostly trinket.webp'},
+{id: '907', name: 'Ghostly Coal', image: 'ghostly coal.webp'},
+{id: '908', name: 'Ghostly Kringle', image: 'ghostly crystal.webp'},
+{id: '909', name: 'Ghostly Krampus', image: 'ghostly krampus.webp'},
+{id: '910', name: 'Sea Angel', image: 'sea angel.webp'},
+{id: '911', name: 'Piggy Bank', image: 'piggy bank.webp'},
+{id: '912', name: 'Zephyr', image: 'zephyr.webp'},
+{id: '913', name: 'Guerrero', image: 'guerrero.webp'},
+{id: '914', name: 'Tulong', image: 'tulong.webp'}
+];
+
+var myPicker = new picker.Picker({
+    items: items,
+    //localStorageKey: 'dragonvale-favorites'
+    defaultSettings: {
+        minBatchSize: 2,
+        maxBatchSize: 20
+    }
+});
+
+var pickerUI = new PickerUI(myPicker, {
+    elements: {
+        pick: "#pick",
+        pass: "#pass",
+        undo: "#undo",
+        redo: "#redo",
+        evaluating: "#evaluating",
+        favorites: "#favorites",
+        settings: {
+            maxBatchSize: '#max-batch-size'
+        }
+    }
+});
+
+pickerUI.initialize();
+
+/* Sortable favorites - you can safely remove this, and the Sortable.min.js script, if you don't want to be able to sort your favorite list. */
+var sortable = new Sortable(pickerUI.elem.favorites.get(0), {
+    draggable: '.item',
+    animation: 100,
+    onStart: function() {
+        pickerUI.elem.favorites.addClass("sorting");
+    },
+    onEnd: function() {
+        pickerUI.elem.favorites.removeClass("sorting");
+    },
+    onUpdate: function() {
+        myPicker.setFavorites(pickerUI.elem.favorites.children().map(function() {
+            return pickerUI.getItem(this);
+        }).get());
+        pickerUI.update(true);
+    }
+});
+/* End sortable favorites */
+</script>
+</body>
+</html>
