@@ -254,9 +254,6 @@ button.disabled:hover {
 </p>
     <p>Include ages:
 <label><input type="checkbox" name="ages" class="ages" value="all"> All</label>
-//<label><input type="checkbox" name="ages" class="ages" value="egg"> Egg</label>
-//<label><input type="checkbox" name="ages" class="ages" value="baby"> Baby</label>
-//<label><input type="checkbox" name="ages" class="ages" value="juvenile"> Juvenile</label>
 <label><input type="checkbox" name="ages" class="ages" value="adult"> Adult</label>
 <label><input type="checkbox" name="ages" class="ages" value="elder"> Elder</label>
 </p>
@@ -271,46 +268,6 @@ button.disabled:hover {
 <label><input type="checkbox" name="rarities" class="rarities" value="mythic"> Mythic</label>
 <label><input type="checkbox" name="rarities" class="rarities" value="legendary"> Legendary</label>
 </p>
-    /*<p>Include categories:
-<label><input type="checkbox" name="categories" class="categories" value="all"> All</label>
-<label><input type="checkbox" name="categories" class="categories" value="elemental"> Elemental</label>
-<label><input type="checkbox" name="categories" class="categories" value="anniversary"> Anniversary</label>
-<label><input type="checkbox" name="categories" class="categories" value="autumn"> Autumn</label>
-<label><input type="checkbox" name="categories" class="categories" value="camping"> Camping</label>
-<label><input type="checkbox" name="categories" class="categories" value="celebration"> Celebration</label>
-<label><input type="checkbox" name="categories" class="categories" value="enhanced"> Enhanced</label>
-<label><input type="checkbox" name="categories" class="categories" value="evolved"> Evolved</label>
-<label><input type="checkbox" name="categories" class="categories" value="foolish"> Foolish</label>
-<label><input type="checkbox" name="categories" class="categories" value="ghostly"> Ghostly</label>
-<label><input type="checkbox" name="categories" class="categories" value="house"> House</label>
-<label><input type="checkbox" name="categories" class="categories" value="love"> Love</label>
-<label><input type="checkbox" name="categories" class="categories" value="om of noms"> Om of Noms</label>
-<label><input type="checkbox" name="categories" class="categories" value="paradise"> Paradise</label>
-<label><input type="checkbox" name="categories" class="categories" value="spooky"> Spooky</label>
-<label><input type="checkbox" name="categories" class="categories" value="summer"> Summer</label>
-<label><input type="checkbox" name="categories" class="categories" value="vernal"> Vernal</label>
-<label><input type="checkbox" name="categories" class="categories" value="vintage"> Vintage</label>
-<label><input type="checkbox" name="categories" class="categories" value="winter"> Winter</label>
-<label><input type="checkbox" name="categories" class="categories" value="form"> Alternate Forms</label>
-</p>
-    <p>Include things:
-<label><input type="checkbox" name="things" class="things" value="all"> All</label>
-<label><input type="checkbox" name="things" class="things" value="dragon"> Dragons</label>
-<label><input type="checkbox" name="things" class="things" value="habitat"> Habitats</label>
-<label><input type="checkbox" name="things" class="things" value="decoration"> Decorations</label>
-<label><input type="checkbox" name="things" class="things" value="building"> Buildings</label>
-<label><input type="checkbox" name="things" class="things" value="island"> Islands</label>
-<label><input type="checkbox" name="things" class="things" value="path"> Paths</label>
-<label><input type="checkbox" name="things" class="things" value="cube"> Cubes</label>
-<label><input type="checkbox" name="things" class="things" value="currency"> Currencies</label>
-<label><input type="checkbox" name="things" class="things" value="treat"> Treats</label>
-<label><input type="checkbox" name="things" class="things" value="visitor"> Visitors</label>
-<label><input type="checkbox" name="things" class="things" value="character"> Characters</label>
-<label><input type="checkbox" name="things" class="things" value="sky"> Skies</label>
-<label><input type="checkbox" name="things" class="things" value="weather"> Weathers</label>
-<label><input type="checkbox" name="things" class="things" value="element"> Elements</label>
-<label><input type="checkbox" name="things" class="things" value="trait"> Traits</label>
-</p>*/
 
 <div id="container">
 
@@ -1330,7 +1287,7 @@ var myPicker = new picker.Picker({
         things: ['dragon']
     },
     shouldIncludeItem: function(item, settings) {
-        return ((settings.elements.indexOf(item.element1) !== -1) || (settings.elements.indexOf(item.element2) !== -1) || (settings.elements.indexOf(item.element3) !== -1) || (settings.elements.indexOf(item.element4) !== -1) || (settings.elements.indexOf(item.element5) !== -1) || (settings.elements.indexOf(item.element6) !== -1) || (settings.elements.indexOf(item.element) !== -1)) && ((settings.ages.indexOf(item.age1) !== -1) || (settings.ages.indexOf(item.age2) !== -1) || (settings.ages.indexOf(item.age3) !== -1) || (settings.ages.indexOf(item.age4) !== -1) || (settings.ages.indexOf(item.age5) !== -1) || (settings.ages.indexOf(item.age6) !== -1) || (settings.ages.indexOf(item.age) !== -1));
+        return ((settings.elements.indexOf(item.element1) !== -1) || (settings.elements.indexOf(item.element2) !== -1) || (settings.elements.indexOf(item.element3) !== -1) || (settings.elements.indexOf(item.element4) !== -1) || (settings.elements.indexOf(item.element5) !== -1) || (settings.elements.indexOf(item.element6) !== -1) || (settings.elements.indexOf(item.element) !== -1)) && ((settings.ages.indexOf(item.age1) !== -1) || (settings.ages.indexOf(item.age2) !== -1) || (settings.ages.indexOf(item.age3) !== -1) || (settings.ages.indexOf(item.age4) !== -1) || (settings.ages.indexOf(item.age5) !== -1) || (settings.ages.indexOf(item.age6) !== -1) || (settings.ages.indexOf(item.age) !== -1)) && ((settings.rarities.indexOf(item.rarity1) !== -1) || (settings.rarities.indexOf(item.rarity2) !== -1) || (settings.rarities.indexOf(item.rarity3) !== -1) || (settings.rarities.indexOf(item.rarity4) !== -1) || (settings.rarities.indexOf(item.rarity5) !== -1) || (settings.rarities.indexOf(item.rarity6) !== -1) || (settings.rarities.indexOf(item.rarity) !== -1));
     }
 });
 
