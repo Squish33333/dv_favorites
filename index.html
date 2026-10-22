@@ -257,6 +257,7 @@ button.disabled:hover {
 <label><input type="checkbox" name="ages" class="ages" value="all"> All</label>
 <label><input type="checkbox" name="ages" class="ages" value="adult"> Adult</label>
 <label><input type="checkbox" name="ages" class="ages" value="elder"> Elder</label>
+<label><input type="checkbox" name="ages" class="ages" value="oldest"> Oldest</label>
 </p>
     <p>Include rarities:
 <label><input type="checkbox" name="rarities" class="rarities" value="all"> All</label>
@@ -2312,7 +2313,7 @@ var myPicker = new picker.Picker({
         minBatchSize: 2,
         maxBatchSize: 20,
         elements: ['all'],
-        ages: ['adult'],
+        ages: ['oldest'],
         categories: ['all'],
         rarities: ['all'],
         things: ['dragon']
